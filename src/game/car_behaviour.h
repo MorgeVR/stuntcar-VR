@@ -74,6 +74,10 @@ typedef struct
 	float   landing_impact;		// 0..1 pulse when wheels hit the road hard
 	bool    car_collision;		// pulse when the cars collide
 	int32_t current_piece;
+	// wheel height above the road under it (rear, front left, front right), in game render
+	// units; negative = the wheel has sunk below the road surface. 0 when off the track.
+	float   wheel_clearance[3];
+	bool    road_under_wheels;
 	} ScrCarTelemetry;
 
 extern void GetCarTelemetry (ScrCarTelemetry *t);

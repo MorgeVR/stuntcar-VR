@@ -151,6 +151,33 @@ void InputSystem::handleEvent(const SDL_Event &e, bool racing, InputFrame &f)
     case SDL_EVENT_GAMEPAD_ADDED: openJoystick(e.gdevice.which); break;
     case SDL_EVENT_GAMEPAD_REMOVED: closeJoystick(e.gdevice.which); break;
     case SDL_EVENT_QUIT: f.quit = true; break;
+    case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+        if (m_wheel && e.jbutton.which == SDL_GetJoystickID(m_wheel))
+        {
+            bool in_setup = m_cfg.buttons.setup_active;
+            int act = m_cfg.buttons.press(e.jbutton.button);
+            fprintf(stderr, "[StuntCarVR] wheel button %d pressed%s%s\n", (int)e.jbutton.button,
+                    in_setup ? " (assigned)" : (act >= 0 ? " -> " : ""), (!in_setup && act >= 0) ? WheelButtons::name(act) : "");
+            switch (act)
+            {
+            case kWbView: f.toggle_outside = true; break;
+            case kWbTurnAround: f.turn_around = true; break;
+            case kWbPause: f.pause = true; break;
+            case kWbMenu: f.back = true; break;
+            case kWbSelect: if (!racing) f.select = true; break;
+            case kWbRecenter: f.recenter = true; break;
+            default: break;
+            }
+        }
+        break;
+    case SDL_EVENT_JOYSTICK_HAT_MOTION:
+        // the G27 shifter's D-pad moves through menus
+        if (m_wheel && e.jhat.which == SDL_GetJoystickID(m_wheel) && !racing)
+        {
+            if (e.jhat.value & SDL_HAT_UP) f.up = true;
+            if (e.jhat.value & SDL_HAT_DOWN) f.down = true;
+        }
+        break;
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         switch (e.gbutton.button)
         {
@@ -183,6 +210,7 @@ void InputSystem::handleEvent(const SDL_Event &e, bool racing, InputFrame &f)
         case SDLK_F4: f.next_scenery = true; break;
         case SDLK_F9: case SDLK_F10: f.toggle_pace = true; break;
         case SDLK_F2: f.toggle_comfort = true; break;
+        case SDLK_F3: f.wheel_setup = true; break;
         case SDLK_HOME: case SDLK_F12: f.recenter = true; break;
         default:
             if (!racing && e.key.key >= SDLK_1 && e.key.key <= SDLK_8) f.track_hotkey = (int)(e.key.key - SDLK_1);
@@ -277,9 +305,11 @@ void InputSystem::poll(bool racing, InputFrame &f)
         a.steer_deadzone = m_cfg.steer_deadzone;
         a.throttle = std::max(a.throttle, pedal(m_cfg.throttle_axis));
         a.brake = std::max(a.brake, pedal(m_cfg.brake_axis));
-        // any wheel button boosts (most wheels have paddles / buttons in reach)
-        for (int b = 0; b < SDL_GetNumJoystickButtons(m_wheel) && b < 8; b++)
-            if (SDL_GetJoystickButton(m_wheel, b)) a.boost = racing;
+        // boost: the assigned button (or, before setup, any unassigned button)
+        bool down[32] = {};
+        int nb = std::min(32, SDL_GetNumJoystickButtons(m_wheel));
+        for (int b = 0; b < nb; b++) down[b] = SDL_GetJoystickButton(m_wheel, b);
+        if (racing && m_cfg.buttons.boostHeld(down, nb)) a.boost = true;
     }
     f.analog = a;
 }
@@ -347,13 +377,44 @@ void InputSystem::applyForceFeedback(const FfbOutput &o, float steer_pos, float 
     }
 }
 
+void InputSystem::update(float dt, bool in_menu)
+{
+    WheelButtons &wb = m_cfg.buttons;
+    if (wb.setup_active && (!in_menu || !m_wheel)) wb.cancelSetup();
+    // first time a wheel is seen in the menu: ask for its buttons once
+    if (m_wheel && in_menu && !wb.configured && !m_auto_setup_done && !wb.setup_active)
+    {
+        m_auto_setup_done = true;
+        startWheelSetup();
+    }
+    wb.tick(dt);
+}
+
+void InputSystem::startWheelSetup()
+{
+    if (!m_wheel) return;
+    m_cfg.buttons.startSetup();
+    fprintf(stderr, "[StuntCarVR] wheel button setup started\n");
+}
+
+bool InputSystem::takeButtonChange(WheelButtons &out)
+{
+    if (!m_cfg.buttons.changed) return false;
+    m_cfg.buttons.changed = false;
+    out = m_cfg.buttons;
+    out.setup_active = false;
+    fprintf(stderr, "[StuntCarVR] wheel buttons saved: %s\n", out.toString().c_str());
+    return true;
+}
+
 std::string InputSystem::status() const
 {
     std::string s;
     if (m_wheel)
     {
         s += "Wheel: " + m_wheel_name + (m_haptic ? " (force feedback)" : " (no FFB)");
-        if (m_learn_stage == 0) s += " - press the THROTTLE pedal";
+        if (m_cfg.buttons.setup_active) s += " - " + m_cfg.buttons.prompt();
+        else if (m_learn_stage == 0) s += " - press the THROTTLE pedal";
         else if (m_learn_stage == 1) s += " - press the BRAKE pedal";
     }
     if (m_pad) s += (s.empty() ? "" : " | ") + std::string("Gamepad: ") + m_pad_name;

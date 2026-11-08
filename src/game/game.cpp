@@ -308,6 +308,7 @@ void Game::capture(Snapshot &s) const
     s.oxa = opponent_x_angle; s.oya = opponent_y_angle; s.oza = opponent_z_angle;
     s.vx = viewpoint1_x; s.vy = viewpoint1_y; s.vz = viewpoint1_z;
     s.vxa = viewpoint1_x_angle; s.vya = viewpoint1_y_angle; s.vza = viewpoint1_z_angle;
+    s.lift = m_lift;
     s.valid = true;
 }
 
@@ -421,6 +422,15 @@ void Game::tick()
         UpdateDamage();
         UpdateLapData();
         GetCarTelemetry(&m_telemetry);
+        // visual ground correction (see game.h)
+        m_lift = 0.0f;
+        const ScrCarTelemetry &t = m_telemetry;
+        if (t.road_under_wheels && !t.on_chains)
+        {
+            float c = std::min(t.wheel_clearance[0], std::min(t.wheel_clearance[1], t.wheel_clearance[2]));
+            float lift = (kCarRestClearance - kMaxVisualSink) - c;
+            if (lift > 0.0f && lift < 160.0f) m_lift = lift;   // larger = road of another piece (falling off)
+        }
     }
     else
     {
@@ -480,8 +490,8 @@ GamePose Game::playerCarPose(float t) const
     if (t < 0.0f) t = alpha();
     t = std::min(1.0f, std::max(0.0f, t));
 
-    GamePose pa = poseFromFixed(a.px, a.py, a.pz, AngleToRadians(a.pxa), AngleToRadians(a.pya), AngleToRadians(a.pza), VCAR_HEIGHT / 3.0f);
-    GamePose pb = poseFromFixed(b.px, b.py, b.pz, AngleToRadians(b.pxa), AngleToRadians(b.pya), AngleToRadians(b.pza), VCAR_HEIGHT / 3.0f);
+    GamePose pa = poseFromFixed(a.px, a.py, a.pz, AngleToRadians(a.pxa), AngleToRadians(a.pya), AngleToRadians(a.pza), kCarDrawOffset + a.lift);
+    GamePose pb = poseFromFixed(b.px, b.py, b.pz, AngleToRadians(b.pxa), AngleToRadians(b.pya), AngleToRadians(b.pza), kCarDrawOffset + b.lift);
 
     // Snap on discontinuities (reset onto the chains, turning around)
     if (length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f)
@@ -552,8 +562,8 @@ GamePose Game::cameraPose() const
     const Snapshot &a = m_prev.valid ? m_prev : m_cur;
     const Snapshot &b = m_cur;
     float t = std::min(1.0f, std::max(0.0f, alpha()));
-    GamePose pa = poseFromFixed(a.vx, a.vy, a.vz, AngleToRadians(a.vxa), AngleToRadians(a.vya), AngleToRadians(a.vza), 0.0f);
-    GamePose pb = poseFromFixed(b.vx, b.vy, b.vz, AngleToRadians(b.vxa), AngleToRadians(b.vya), AngleToRadians(b.vza), 0.0f);
+    GamePose pa = poseFromFixed(a.vx, a.vy, a.vz, AngleToRadians(a.vxa), AngleToRadians(a.vya), AngleToRadians(a.vza), a.lift);
+    GamePose pb = poseFromFixed(b.vx, b.vy, b.vz, AngleToRadians(b.vxa), AngleToRadians(b.vya), AngleToRadians(b.vza), b.lift);
     if (length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f)
         return pb;
     return {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};

@@ -50,6 +50,12 @@ bool Settings::load(const std::string &path)
     I("wheel_steer_axis", input.steer_axis);
     I("wheel_throttle_axis", input.throttle_axis);
     I("wheel_brake_axis", input.brake_axis);
+    {
+        std::string wb;
+        S("wheel_buttons", wb);
+        if (!wb.empty()) input.buttons.fromString(wb);
+        B("wheel_buttons_configured", input.buttons.configured);
+    }
     F("wheel_range_deg", input.wheel_range_deg);
     F("wheel_steer_lock_deg", input.steer_lock_deg);
     F("wheel_deadzone", input.steer_deadzone);
@@ -87,6 +93,7 @@ bool Settings::save(const std::string &path) const
     fprintf(f, "# Force feedback (steering wheels) / rumble (gamepads, VR controllers)\nffb_enabled = %d\nffb_gain = %.2f\nffb_centering = %.2f\nffb_road = %.2f\nffb_impacts = %.2f\n", ffb.enabled ? 1 : 0, ffb.gain, ffb.centering, ffb.road, ffb.impacts);
     fprintf(f, "# Set to 1 if jolts push the wheel the wrong way\nffb_invert = %d\n\n", ffb_invert ? 1 : 0);
     fprintf(f, "# Steering wheel axes (-1 = learn: press throttle, then brake, after starting)\nwheel_steer_axis = %d\nwheel_throttle_axis = %d\nwheel_brake_axis = %d\n", input.steer_axis, input.throttle_axis, input.brake_axis);
+    fprintf(f, "# Wheel buttons (button numbers, -1 = none) for: boost, view, turn around, pause, menu, select, recentre.\n# Set up in game: the first time a wheel is connected, or press F3 / X on the VR controller in the menu\nwheel_buttons = %s\nwheel_buttons_configured = %d\n", input.buttons.toString().c_str(), input.buttons.configured ? 1 : 0);
     fprintf(f, "# Physical rotation of your wheel, and how much of it gives full steering lock\nwheel_range_deg = %.0f\nwheel_steer_lock_deg = %.0f\nwheel_deadzone = %.3f\ngamepad_deadzone = %.3f\n\n", input.wheel_range_deg, input.steer_lock_deg, input.steer_deadzone, input.stick_deadzone);
     fprintf(f, "# VR controllers: grip both hands to hold the virtual wheel; rotation for full lock\nvr_wheel_lock_deg = %.0f\n\n", vr_wheel_lock_deg);
     fprintf(f, "# Third-person camera (X in VR, V on the keyboard): metres behind and above the car\nchase_distance_m = %.1f\nchase_height_m = %.1f\n\n", chase_distance_m, chase_height_m);

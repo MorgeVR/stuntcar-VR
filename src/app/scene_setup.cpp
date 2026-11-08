@@ -188,7 +188,7 @@ void DrawDashboard(TextPanel &panel, const Game &game)
     panel.upload();
 }
 
-void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted, bool vr)
+void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted, bool vr, const std::string &notice)
 {
     if (panel.width() == 0) panel.create(1024, 640);
     panel.clear(kPanelBg);
@@ -239,6 +239,29 @@ void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted, bool vr)
             panel.text(40, 470, "          DOWN BRAKE  SPACE BOOST  R TURN AROUND", 2, kGrey);
             panel.text(40, 500, "          C COCKPIT  V OUTSIDE VIEW  P PAUSE", 2, kGrey);
         }
+    }
+    if (!notice.empty())
+    {
+        // banner (e.g. the wheel button setup): "small line|BIG LINE|small line"
+        std::string parts[3];
+        size_t p0 = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            size_t c = notice.find('|', p0);
+            parts[i] = notice.substr(p0, c == std::string::npos ? std::string::npos : c - p0);
+            if (c == std::string::npos) break;
+            p0 = c + 1;
+        }
+        panel.fillRect(0, 410, panel.width(), 230, RGBA(120, 20, 40, 245));
+        panel.fillRect(0, 410, panel.width(), 6, kYellow);
+        auto centred = [&](const std::string &t, int y, int scale, uint32_t c) {
+            int w = TextPanel::textWidth(t, scale);
+            while (w > panel.width() - 20 && scale > 1) w = TextPanel::textWidth(t, --scale);
+            panel.text((panel.width() - w) / 2, y, t, scale, c);
+        };
+        centred(parts[0], 440, 3, kWhite);
+        centred(parts[1], 500, 6, kYellow);
+        centred(parts[2], 590, 2, kGrey);
     }
     panel.upload();
 }

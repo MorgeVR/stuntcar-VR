@@ -106,6 +106,7 @@ void VrWheel::update(const XrInputs &in, bool racing, float dt, InputFrame &f)
         trig_held = trig;
         if (in.a_pressed) f.select = true;
         if (in.menu_pressed || in.b_pressed) f.back = true;
+        if (in.x_pressed) f.wheel_setup = true;   // steering wheel button setup
     }
     if (in.y_pressed) f.recenter = true;
 }

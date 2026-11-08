@@ -35,6 +35,15 @@ constexpr double kDefaultSimHz = kAmigaSimHz;
 
 // Driver's eye inside the car body for VR, in car-model units (+y up, +z forward).
 // The car model spans y -40 (wheel bottom) .. +40 (roof); this is ~1 m above the road.
+// Visual ground correction. The original physics lets the car sink into the road on hard
+// landings (by up to ~100 units, 1.5 m) and pushes it back out over the next ticks; at the
+// Amiga's 8 Hz that is visible, and from the cockpit you can end up looking through the road.
+// The drawn car is lifted so its wheels never go more than kMaxVisualSink below the surface.
+// Physics is unchanged. kCarRestClearance is the measured physics-point clearance at rest.
+constexpr float kCarRestClearance = -22.8f;   // physics point vs road, car resting on its wheels
+constexpr float kCarDrawOffset = 40.0f - kCarRestClearance;   // model origin above the physics point (wheels at -40)
+constexpr float kMaxVisualSink = 6.0f;        // allowed squash into the road (~10 cm)
+
 constexpr float kSeatEyeX = 0.0f, kSeatEyeY = 24.0f, kSeatEyeZ = -16.0f;
 // The engine sound routine is documented as needing 50 Hz.
 constexpr double kEngineSoundHz = 50.0;
@@ -117,6 +126,7 @@ public:
     const HudState &hud() const { return m_hud; }
     const ScrCarTelemetry &telemetry() const { return m_telemetry; }
     uint32_t tickCount() const { return m_ticks; }
+    float visualLift() const { return m_cur.lift; }   // current ground correction (game units)
 
 private:
     struct Snapshot
@@ -124,6 +134,7 @@ private:
         int32_t px = 0, py = 0, pz = 0, pxa = 0, pya = 0, pza = 0;   // player (fixed point)
         int32_t ox = 0, oy = 0, oz = 0;                              // opponent
         float oxa = 0, oya = 0, oza = 0;
+        float lift = 0;                                              // visual ground correction (game units)
         int32_t vx = 0, vy = 0, vz = 0, vxa = 0, vya = 0, vza = 0;   // camera
         bool valid = false;
     };
@@ -150,6 +161,7 @@ private:
     uint32_t m_ticks = 0;
     int32_t m_menu_circle_angle = 0;
     Snapshot m_prev, m_cur;
+    float m_lift = 0.0f;
     HudState m_hud;
     ScrCarTelemetry m_telemetry = {};
 };

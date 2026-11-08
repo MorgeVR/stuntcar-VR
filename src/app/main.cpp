@@ -291,6 +291,7 @@ void App::handleActions(InputFrame &f)
         fprintf(stderr, "[StuntCarVR] horizon lock %s\n", settings.comfort.horizon_lock > 0.5f ? "on" : "off");
     }
     if (f.recenter && vr) xr.recenter();
+    if (f.wheel_setup) input.startWheelSetup();
     if (f.pause) game.setPaused(!game.paused());
     if (f.unpause) game.setPaused(false);
 
@@ -351,7 +352,7 @@ void App::renderFlat(int w, int h)
 
     if (!racing)
     {
-        DrawMenuPanel(menu_panel, game, highlight, false);
+        DrawMenuPanel(menu_panel, game, highlight, false, input.setupPrompt());
         int pw = std::min(w - 40, 900), ph = pw * 10 / 16;
         renderer.drawPanel2D(menu_panel, 20, 20, pw, ph, w, h, false);
     }
@@ -379,7 +380,7 @@ void App::renderVr(bool should_render, const XrInputs &in)
     const Pose anchor = DefaultDioramaAnchor();
 
     if (racing) DrawDashboard(dash, game);
-    else DrawMenuPanel(menu_panel, game, highlight, true);
+    else DrawMenuPanel(menu_panel, game, highlight, true, input.setupPrompt());
     DrawRaceOverlay(overlay, game, true);
 
     for (int i = 0; i < xr.viewCount(); i++)
@@ -501,6 +502,8 @@ void App::run()
         FfbOutput fo = ffb.update(game, f.analog.steer, (float)dt, settings.ffb);
         input.applyForceFeedback(fo, f.analog.steer, (float)dt);
         vignette = ComfortVignette(game, settings.comfort, (float)dt);
+        input.update((float)dt, game.mode() == Mode::TrackMenu || game.mode() == Mode::TrackPreview);
+        if (input.takeButtonChange(settings.input.buttons) && !settings_path.empty()) settings.save(settings_path);
         if ((game.mode() == Mode::Racing || game.mode() == Mode::GameOver) && game.outsideView())
             chase.update(game, space, (float)dt, !vr);
         else

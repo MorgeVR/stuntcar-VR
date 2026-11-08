@@ -4500,5 +4500,17 @@ void GetCarTelemetry (ScrCarTelemetry *t)
 	t->landing_impact = telemetry_landing_pulse;
 	t->car_collision = (GetAndClearCarCollisionPulse() != 0);
 	t->current_piece = player_current_piece;
+	// heights are (player_y >> 8); render units are player_y * LOCAL_Y_FACTOR / PRECISION
+	{
+		const float k = 256.0f * LOCAL_Y_FACTOR / (float)PRECISION;
+		int32_t road[3] = { rear_road_height, front_left_road_height, front_right_road_height };
+		int32_t act[3] = { rear_actual_height, front_left_actual_height, front_right_actual_height };
+		t->road_under_wheels = true;
+		for (int i = 0; i < 3; i++)
+			{
+			if (road[i] == OFF_ROAD_HEIGHT) { t->wheel_clearance[i] = 0.0f; t->road_under_wheels = false; }
+			else t->wheel_clearance[i] = (float)(act[i] - road[i]) * k;
+			}
+	}
 	telemetry_landing_pulse = 0.0f;
 }

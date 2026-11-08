@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         SceneParams env; env.game_to_world = MenuEnvironmentTransform(space);
         env.draw_track = false; env.draw_opponent = false; env.draw_shadow = false;
         r.drawScene(v, env);
-        DrawMenuPanel(menu, game, 7, true);
+        DrawMenuPanel(menu, game, 7, true, "WHEEL SETUP 3/7 - PRESS A WHEEL BUTTON FOR|TURN AROUND / RESET|OR WAIT 8 SECONDS TO SKIP");
         r.drawPanel(v, menu, Pose{vec3(0.0f, 0.15f, -1.9f), quat()}, 1.1f, 0.69f, false);
         (void)floor_space;
         SavePPM(pre + "07_vr_menu_diorama", W, H);

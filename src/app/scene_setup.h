@@ -61,7 +61,7 @@ float ComfortVignette(const Game &game, const ComfortSettings &comfort, float dt
 
 // Panels
 void DrawDashboard(TextPanel &panel, const Game &game);
-void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted_track, bool vr);
+void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted_track, bool vr, const std::string &notice = std::string());
 void DrawRaceOverlay(TextPanel &panel, const Game &game, bool vr);   // opponent name, race won/lost, game over
 
 } // namespace scr

@@ -77,8 +77,10 @@ each eye in the headset.
 | Menu: choose / select | 1-8, ↑ ↓ / S, Enter | D-pad / A | thumbstick / trigger | |
 | Other | C = cockpit view (flat), F4 = scenery type, F9 = Amiga / remake pace, F2 = horizon lock, Esc = quit | | | |
 
-**Wheel setup:** pedals are learned automatically. After starting, press the **throttle**
-pedal, then the **brake** pedal (the status bar tells you when). If jolts push the wheel the wrong
+**Wheel setup:** the first time a wheel is connected the menu asks you to press a wheel button
+for each action (boost, view, turn around, pause, menu, select, recentre); redo it with F3, or X
+on a VR controller in the menu. Pedals are learned automatically: press the **throttle** pedal,
+then the **brake** pedal. The shifter D-pad navigates menus. If jolts push the wheel the wrong
 way, set `ffb_invert = 1`.
 
 ## Settings

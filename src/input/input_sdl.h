@@ -6,6 +6,7 @@
 #include "ffb.h"
 #include "car_behaviour.h"
 #include "pedal.h"
+#include "wheel_buttons.h"
 
 namespace scr {
 
@@ -18,6 +19,7 @@ struct InputConfig
     float wheel_range_deg = 900.0f; // physical rotation of the wheel lock to lock
     float steer_lock_deg = 360.0f;  // wheel rotation that gives the car's full steering lock
     float steer_deadzone = 0.02f;
+    WheelButtons buttons;           // wheel button actions (set up in game)
     // Gamepad
     float stick_deadzone = 0.12f;
 };
@@ -37,6 +39,7 @@ struct InputFrame
     bool pause = false, unpause = false, turn_around = false;
     bool toggle_outside = false, toggle_cockpit = false, next_scenery = false;
     bool recenter = false, toggle_pace = false, toggle_comfort = false;
+    bool wheel_setup = false;          // request: start wheel button setup
 };
 
 class InputSystem
@@ -48,6 +51,14 @@ public:
     void poll(bool racing, InputFrame &f);                              // analog devices
     void applyForceFeedback(const FfbOutput &o, float steer_pos, float dt);
     std::string status() const;
+
+    // Wheel button setup (runs in menus). Call update once per frame.
+    void update(float dt, bool in_menu);
+    void startWheelSetup();
+    bool hasWheel() const { return m_wheel != nullptr; }
+    std::string setupPrompt() const { return m_cfg.buttons.panelText(); }
+    // True once after the button mapping changed (copy it into the saved settings)
+    bool takeButtonChange(WheelButtons &out);
 
 private:
     void openJoystick(SDL_JoystickID id);
@@ -66,6 +77,7 @@ private:
     PedalAxis m_pedals[16];
     int m_learn_stage = 0;    // 0 = throttle, 1 = brake, 2 = done
     std::string m_wheel_name, m_pad_name, m_learn_msg;
+    bool m_auto_setup_done = false;
 };
 
 } // namespace scr
