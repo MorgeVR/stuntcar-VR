@@ -10,6 +10,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <unknwn.h>   // IUnknown, used by openxr_platform.h on Win32
 #elif defined(__ANDROID__)
 #define XR_USE_PLATFORM_ANDROID
 #define XR_USE_GRAPHICS_API_OPENGL_ES

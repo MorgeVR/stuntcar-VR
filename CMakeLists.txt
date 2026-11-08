@@ -13,6 +13,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if(WIN32)
+    # the original remake was a UNICODE Win32 project (MessageBox with L"" strings)
+    add_compile_definitions(UNICODE _UNICODE)
+endif()
+
 if(MSVC)
     add_compile_options(/W3 /utf-8 /MP)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
@@ -92,12 +97,20 @@ if(SCR_BUILD_APP AND SCR_ENABLE_VR)
         set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
         set(BUILD_API_LAYERS OFF CACHE BOOL "" FORCE)
         set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
-        set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE)
+        if(MINGW)
+            set(DYNAMIC_LOADER OFF CACHE BOOL "" FORCE)   # static loader: no DLL, no GNU-ld version script
+        else()
+            set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE)
+        endif()
         FetchContent_Declare(OpenXR
             GIT_REPOSITORY https://github.com/KhronosGroup/OpenXR-SDK.git
             GIT_TAG        release-1.1.65
             GIT_SHALLOW    TRUE)
         FetchContent_MakeAvailable(OpenXR)
+        if(MINGW AND TARGET openxr_loader)
+            # MinGW's winapifamily.h leaves WINAPI_PARTITION_SYSTEM undefined; the loader builds with -Werror=undef
+            target_compile_options(openxr_loader PRIVATE -Wno-error=undef -Wno-undef)
+        endif()
     endif()
 endif()
 
@@ -134,6 +147,10 @@ if(SCR_BUILD_APP)
 
     if(WIN32)
         target_link_libraries(StuntCarVR PRIVATE opengl32)
+        if(MINGW)
+            # UNICODE build: SDL provides wWinMain
+            target_link_options(StuntCarVR PRIVATE -municode)
+        endif()
     elseif(ANDROID)
         target_link_libraries(StuntCarVR PRIVATE EGL GLESv3 android log)
     else()
