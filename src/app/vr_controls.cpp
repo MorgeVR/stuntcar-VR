@@ -3,6 +3,7 @@
 #include "vr_controls.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace scr {
 
@@ -66,6 +67,8 @@ void VrWheel::update(const XrInputs &in, bool racing, float dt, InputFrame &f)
             angle *= std::max(0.0f, 1.0f - dt * 6.0f);
     }
     angle = std::max(-half, std::min(half, angle));
+    if (racing && hands != held_hands && hands)
+        fprintf(stderr, "[StuntCarVR] VR wheel held with %s\n", hands == 3 ? "both hands" : (hands == 1 ? "left hand" : "right hand"));
     held_hands = racing ? hands : 0;
 
     if (racing)
@@ -74,12 +77,14 @@ void VrWheel::update(const XrInputs &in, bool racing, float dt, InputFrame &f)
         bool steering = held || std::fabs(in.stick_x[kLeft]) > 0.15f;
         if (steering || th > 0.05f || br > 0.05f || in.a)
         {
-            // VR controllers only replace a quieter analog device
-            if (!f.analog.active || (!f.has_wheel && std::fabs(steer()) >= std::fabs(f.analog.steer)))
+            // Steering source: while you hold the virtual wheel (or push the stick) VR steers,
+            // even with a physical wheel / gamepad plugged in. Let go and they take over again.
+            if (steering || !f.analog.active)
             {
                 f.analog.active = true;
                 f.analog.steer = steer();
                 f.analog.steer_deadzone = 0.03f;
+                f.vr_steering = steering;
             }
             f.analog.throttle = std::max(f.analog.throttle, th);
             f.analog.brake = std::max(f.analog.brake, br);

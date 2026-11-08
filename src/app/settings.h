@@ -17,10 +17,11 @@ struct Settings
     FfbSettings ffb;
     bool ffb_invert = false;
     InputConfig input;
-    float vr_wheel_lock_deg = 270.0f;   // virtual wheel rotation (VR controllers) for full lock
+    float vr_wheel_lock_deg = 180.0f;   // virtual wheel rotation (VR controllers) for full lock
     bool flat_cockpit = false;          // flat screen: show the 3D cockpit instead of the classic view
     bool mirror = false;                // desktop VR: render a spectator view in the window
     int window_w = 1280, window_h = 720;
+    int version = 2;                    // settings file format / defaults version
 
     bool load(const std::string &path);
     bool save(const std::string &path) const;

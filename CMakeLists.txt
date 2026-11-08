@@ -184,6 +184,13 @@ if(SCR_BUILD_TESTS AND NOT ANDROID)
     target_link_libraries(ffb_test PRIVATE scr_ffb)
     add_test(NAME ffb_test COMMAND ffb_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+    if(SCR_BUILD_APP AND TARGET SDL3::SDL3)
+        add_executable(vr_controls_test tests/vr_controls_test.cpp src/app/vr_controls.cpp)
+        target_include_directories(vr_controls_test PRIVATE src/xr src/app src/input src/render)
+        target_link_libraries(vr_controls_test PRIVATE scr_core SDL3::SDL3)
+        add_test(NAME vr_controls_test COMMAND vr_controls_test)
+    endif()
+
     if(UNIX AND NOT APPLE)
         find_path(EGL_INCLUDE EGL/egl.h)
         if(EGL_INCLUDE)

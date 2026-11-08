@@ -481,8 +481,8 @@ void App::run()
 
         // Cockpit wheel animation: physical wheel angle, else the analog / digital steering
         float wheel_rad = 0.0f;
-        if (f.has_wheel) wheel_rad = f.wheel_angle_deg * 3.14159265f / 180.0f;
-        else if (vr && vr_wheel.held) wheel_rad = vr_wheel.angle;
+        if (f.vr_steering) wheel_rad = vr_wheel.angle;
+        else if (f.has_wheel) wheel_rad = f.wheel_angle_deg * 3.14159265f / 180.0f;
         else if (f.analog.active) wheel_rad = f.analog.steer * 1.57f;
         else if (f.keys & kKeyLeft) wheel_rad = -1.57f;
         else if (f.keys & kKeyRight) wheel_rad = 1.57f;

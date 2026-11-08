@@ -9,7 +9,7 @@ namespace scr {
 
 struct VrWheel
 {
-    float lock_deg = 270.0f;     // wheel rotation lock to lock for full steering
+    float lock_deg = 180.0f;     // wheel rotation lock to lock for full steering
     // state
     float angle = 0.0f;          // current wheel angle (radians, + = clockwise / right)
     bool held = false;

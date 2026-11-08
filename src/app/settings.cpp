@@ -59,6 +59,13 @@ bool Settings::load(const std::string &path)
     B("mirror", mirror);
     I("window_width", window_w);
     I("window_height", window_h);
+    int file_version = 1;
+    I("settings_version", file_version);
+    if (file_version < 2)
+    {
+        // v2: the virtual VR wheel default changed from 270 to 180 degrees lock to lock
+        if (vr_wheel_lock_deg == 270.0f) vr_wheel_lock_deg = 180.0f;
+    }
 
     if (sim_hz < 4.0 || sim_hz > 60.0) sim_hz = kDefaultSimHz;
     if (metres_per_unit < 0.002f || metres_per_unit > 0.1f) metres_per_unit = kDefaultMetresPerUnit;
@@ -69,7 +76,7 @@ bool Settings::save(const std::string &path) const
 {
     FILE *f = fopen(path.c_str(), "w");
     if (!f) return false;
-    fprintf(f, "# Stunt Car Racer VR settings\n\n");
+    fprintf(f, "# Stunt Car Racer VR settings\nsettings_version = %d\n\n", version);
     fprintf(f, "# auto = VR when a headset / OpenXR runtime is available, otherwise flat screen\nmode = %s\n\n", mode.c_str());
     fprintf(f, "# Physics rate. 8.333 = original Amiga pace, 12.5 = Windows remake pace (faster)\nsim_hz = %.3f\n", sim_hz);
     fprintf(f, "# World scale in VR (metres per game unit). Larger = everything bigger\nmetres_per_unit = %.6f\n\n", metres_per_unit);

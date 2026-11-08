@@ -28,6 +28,7 @@ struct InputFrame
     ScrAnalogInput analog = {};        // gamepad / wheel
     float wheel_angle_deg = 0.0f;      // physical wheel angle (for the cockpit wheel), 0 if none
     bool has_wheel = false;
+    bool vr_steering = false;          // VR controllers are steering this frame
 
     // edge-triggered actions
     bool quit = false, select = false, back = false, up = false, down = false;
