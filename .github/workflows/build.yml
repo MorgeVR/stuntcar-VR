@@ -1,5 +1,8 @@
 name: Build
 
+permissions:
+  contents: write   # publish the "latest" release
+
 on:
   push:
   pull_request:
@@ -75,7 +78,42 @@ jobs:
           mkdir -p out/StuntCarVR-Quest
           cp android/app/build/outputs/apk/release/app-release.apk out/StuntCarVR-Quest/StuntCarVR.apk
           cp packaging/quest/INSTALL.txt out/StuntCarVR-Quest/
+      - name: Check APK contents
+        run: |
+          apk=out/StuntCarVR-Quest/StuntCarVR.apk
+          unzip -l "$apk" | grep -E '\.so$'
+          for f in lib/arm64-v8a/libmain.so lib/arm64-v8a/libopenxr_loader.so lib/arm64-v8a/libc++_shared.so \
+                   assets/Tracks/HighJump.bin assets/Sounds/TickOver.wav assets/Bitmap/RoadWhite.bmp classes.dex; do
+            unzip -l "$apk" | grep -q " $f\$" || { echo "MISSING from APK: $f"; exit 1; }
+          done
+          echo "assets in APK: $(unzip -l "$apk" | grep -c ' assets/')"
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -E "^package|sdkVersion|targetSdkVersion|native-code|uses-feature: name='android.hardware.vr"
       - uses: actions/upload-artifact@v4
         with:
           name: StuntCarVR-Quest
           path: out/StuntCarVR-Quest
+
+  release:
+    name: Publish "latest" release
+    needs: [tests, windows, quest]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+      - name: Zip
+        run: |
+          cd dl
+          zip -qr ../StuntCarVR-Windows.zip StuntCarVR-Windows
+          zip -qr ../StuntCarVR-Quest.zip StuntCarVR-Quest
+          cp StuntCarVR-Quest/StuntCarVR.apk ../StuntCarVR.apk
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest --target "${{ github.sha }}" --title "Latest build" \
+            --notes "Built automatically from ${{ github.sha }}. Windows: unzip StuntCarVR-Windows.zip and read 'READ ME FIRST.txt'. Quest: sideload StuntCarVR.apk (see INSTALL.txt in StuntCarVR-Quest.zip)." \
+            StuntCarVR-Windows.zip StuntCarVR.apk StuntCarVR-Quest.zip
