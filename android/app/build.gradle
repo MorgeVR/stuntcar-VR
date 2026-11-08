@@ -25,7 +25,7 @@ android {
                           '-DSCR_BUILD_TESTS=OFF',
                           "-DFETCHCONTENT_SOURCE_DIR_SDL3=${thirdParty}/SDL",
                           "-DFETCHCONTENT_SOURCE_DIR_OPENXR=${thirdParty}/OpenXR-SDK"
-                targets 'StuntCarVR'
+                targets 'StuntCarVR', 'openxr_loader'
             }
         }
     }
@@ -51,7 +51,7 @@ android {
         }
     }
 
-    packagingOptions {
+    packaging {
         jniLibs { useLegacyPackaging true }
     }
 }

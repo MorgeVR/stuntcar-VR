@@ -1,0 +1,70 @@
+STUNT CAR RACER VR  -  Windows build (64-bit)
+================================================
+
+HOW TO RUN
+----------
+1. Unzip this whole folder somewhere (keep the "assets" folder next to StuntCarVR.exe).
+2. Double-click one of:
+     "Play in VR.bat"      - plays in your headset
+     "Play on screen.bat"  - plays in a normal window (no headset needed)
+     StuntCarVR.exe        - VR if a headset is available, otherwise a window
+
+Windows may show "Windows protected your PC" because the program isn't signed.
+Click "More info" then "Run anyway".
+
+PLAYING IN VR (PCVR)
+--------------------
+Start your headset software FIRST:
+  * Meta Quest over Link / Air Link: open the Meta Quest Link app, connect the headset,
+    and in the app go to Settings > General > OpenXR Runtime and click "Set Meta Quest Link as active".
+  * SteamVR headsets (Index, Vive, Pico via Streaming Assistant, etc.): start SteamVR, then in
+    SteamVR Settings > OpenXR, set SteamVR as the current OpenXR runtime.
+  * Windows Mixed Reality: start Mixed Reality Portal.
+Then run "Play in VR.bat". If no headset is found the game starts in a window and says so.
+
+The menu appears as a model of the track on a table in front of you.
+  Thumbstick = choose track, Trigger = select.
+In the car:
+  Right trigger = accelerate, left trigger = brake / reverse
+  Squeeze and HOLD BOTH grip buttons (middle fingers), then turn your hands like a steering
+  wheel - a quarter turn is full lock. One hand works too, or use the left thumbstick.
+  This works even with a steering wheel plugged in: hold the grips for VR steering, let go
+  and the real wheel takes over.
+  A = boost, B = turn around, X = third-person chase camera on/off, Y = recentre your seat,
+  Menu = pause
+  While paused: B = back to the track menu
+
+STEERING WHEELS (force feedback)
+--------------------------------
+Plug the wheel in before starting.
+1. The first time, the menu asks you to press a wheel button for each action:
+   BOOST, CHANGE VIEW, TURN AROUND / RESET, PAUSE, BACK TO TRACK MENU, SELECT, RECENTRE VR.
+   Press the button you want, or wait to skip one. To do it again later: press F3, or X on
+   the VR controller, while in the menu.
+2. Press the THROTTLE pedal once, then the BRAKE pedal once (the game learns which is which).
+The D-pad on the G27 shifter moves up/down in the menus.
+If bumps push the wheel the wrong way, set  ffb_invert = 1  in settings.ini (see below).
+
+KEYBOARD
+--------
+Menu: 1-8 or Up/Down to choose a track, S or Enter to select, M = back, Esc = quit.
+Race: Left/Right (or S/D) steer, Up accelerate (Shift+Up = boost), Down brake/reverse,
+      R turn around, V third-person camera, C cockpit view, P pause, F4 scenery, F9 Amiga/remake speed,
+      F2 level-horizon comfort mode, Home recentre (VR).
+A game controller also works (sticks + triggers).
+
+SETTINGS AND LOG
+----------------
+After the first run you will find, in  %APPDATA%\StuntCarVR\StuntCarVR\ :
+  settings.ini  - VR comfort, world scale, force feedback strength, wheel setup, physics speed,
+                  chase camera distance/height (chase_distance_m, chase_height_m)
+  log.txt       - what happened on the last run (send this if something goes wrong)
+Paste %APPDATA%\StuntCarVR into the Explorer address bar to get there.
+
+REQUIREMENTS
+------------
+Windows 10 or 11, 64-bit, a graphics card with OpenGL 3.3 (any GPU from the last ~12 years).
+
+This is an early test build: it has been compiled and checked but not yet played on a real
+headset or wheel, so please report what you find. Game data (tracks, sounds) is from the
+original Amiga Stunt Car Racer (c) Geoff Crammond / MicroStyle / MicroProse - for personal use.

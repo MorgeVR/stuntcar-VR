@@ -1,0 +1,25 @@
+STUNT CAR RACER VR - Meta Quest (standalone)
+============================================
+
+One-time setup: enable developer mode
+  1. Create / log in to a Meta developer account (free) at developers.meta.com/horizon
+     and create an "organization" when asked.
+  2. In the Meta Horizon app on your phone: Menu > Devices > your headset >
+     Headset settings > Developer mode > On. Restart the headset.
+
+Install
+  * Meta Quest Developer Hub (PC/Mac, from Meta): connect the headset by USB, allow
+    USB debugging in the headset, then drag StuntCarVR.apk onto the device.
+  * or SideQuest: connect by USB and drag the APK onto the SideQuest window.
+  * or adb:  adb install -r StuntCarVR.apk
+
+Play
+  In the headset: Library > (filter) Unknown Sources > Stunt Car Racer VR.
+
+Controls: right trigger accelerate, left trigger brake/reverse, hold BOTH grips and turn
+your hands to steer (or left stick), A boost, B turn around, X chase camera, Y recentre,
+Menu = pause (B while paused = track menu). Menus: thumbstick + trigger.
+
+Settings and log: /sdcard/Android/data/com.stuntcarvr/files/ (settings.ini, log.txt)
+- the log is what to send if something goes wrong:
+  adb pull /sdcard/Android/data/com.stuntcarvr/files/log.txt
