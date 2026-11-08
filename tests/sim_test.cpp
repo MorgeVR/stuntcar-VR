@@ -10,6 +10,7 @@
 #include "game.h"
 #include "track.h"
 #include "car.h"
+#include "road_surface.h"
 #include "scr_compat.h"
 
 #include <cstdio>
@@ -147,33 +148,26 @@ int main()
         CHECK(rms > 0.001, "no audio output");
     }
 
-    // 5. Drawn car never sinks into the road (visual ground correction) ----------------------
-    printf("[5] drawn wheels stay on the road surface through landings\n");
-    for (int track : {6, 4, 2})
+    // 5. Drawn car never clips into the road, checked at every rendered (interpolated) frame --
+    printf("[5] drawn car stays on the road surface at every rendered frame\n");
+    for (int track : {6, 4, 2, 3})
     {
         srand(3);
         g_game.backToMenu(); g_game.selectTrack(track); g_game.startPreview(); g_game.update(0.0); g_game.startRace();
         g_game.setDigitalInput(scr::kKeyAccelBoost);
         g_game.setAnalogInput(noAnalog);
-        float worst_physics = 1e9f, worst_drawn = 1e9f;
-        uint32_t lt = g_game.tickCount();
+        float worst_raw = 0.0f, worst_drawn = 0.0f;
         for (int i = 0; i < 90 * 40; i++)
         {
             g_game.update(1.0 / 90.0);
-            if (g_game.tickCount() == lt) continue;
-            lt = g_game.tickCount();
-            const ScrCarTelemetry &t = g_game.telemetry();
-            if (!t.road_under_wheels || t.on_chains) continue;
-            float c = std::min(t.wheel_clearance[0], std::min(t.wheel_clearance[1], t.wheel_clearance[2]));
-            if (scr::kCarRestClearance - c > 160.0f) continue;   // road of another piece (off the edge)
-            // drawn wheel bottom vs road = (physics point + draw offset + lift - 40) - road
-            float drawn = c - scr::kCarRestClearance + g_game.visualLift();
-            worst_physics = std::min(worst_physics, c - scr::kCarRestClearance);
-            worst_drawn = std::min(worst_drawn, drawn);
+            scr::GamePose raw = g_game.rawPlayerCarPose(-1.0f), drawn = g_game.playerCarPose();
+            worst_raw = std::max(worst_raw, scr::CarGroundLift(raw.position, raw.orientation, 0.0f));
+            worst_drawn = std::max(worst_drawn, scr::CarGroundLift(drawn.position, drawn.orientation, 0.0f));
         }
-        printf("  %-14s deepest sink: physics %.0f units (%.2f m), drawn %.0f units (%.2f m)\n", scr::Game::trackName(track).c_str(),
-               -worst_physics, -worst_physics * scr::kDefaultMetresPerUnit, -worst_drawn, -worst_drawn * scr::kDefaultMetresPerUnit);
-        CHECK(worst_drawn >= -scr::kMaxVisualSink - 0.5f, "drawn car sank %.0f units into the road", -worst_drawn);
+        printf("  %-14s deepest wheel in the road: before %.0f units (%.2f m), drawn %.0f units (%.2f m)\n",
+               scr::Game::trackName(track).c_str(), worst_raw, worst_raw * scr::kDefaultMetresPerUnit, worst_drawn,
+               worst_drawn * scr::kDefaultMetresPerUnit);
+        CHECK(worst_drawn <= scr::kMaxVisualSink + 0.5f, "drawn car clipped %.0f units into the road", worst_drawn);
     }
 
     g_game.shutdown();

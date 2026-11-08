@@ -35,11 +35,11 @@ constexpr double kDefaultSimHz = kAmigaSimHz;
 
 // Driver's eye inside the car body for VR, in car-model units (+y up, +z forward).
 // The car model spans y -40 (wheel bottom) .. +40 (roof); this is ~1 m above the road.
-// Visual ground correction. The original physics lets the car sink into the road on hard
-// landings (by up to ~100 units, 1.5 m) and pushes it back out over the next ticks; at the
-// Amiga's 8 Hz that is visible, and from the cockpit you can end up looking through the road.
-// The drawn car is lifted so its wheels never go more than kMaxVisualSink below the surface.
-// Physics is unchanged. kCarRestClearance is the measured physics-point clearance at rest.
+// Visual ground correction (drawing only, physics unchanged). Every frame the drawn car is
+// raised so none of its wheels goes more than kMaxVisualSink below the road mesh: the
+// physics runs at ~8 Hz and interpolating between ticks cuts through crests and ramps, and
+// hard landings sink the physics car into the road. kCarRestClearance is the measured
+// clearance of the physics point at rest, used to draw the car resting on its wheels.
 constexpr float kCarRestClearance = -22.8f;   // physics point vs road, car resting on its wheels
 constexpr float kCarDrawOffset = 40.0f - kCarRestClearance;   // model origin above the physics point (wheels at -40)
 constexpr float kMaxVisualSink = 6.0f;        // allowed squash into the road (~10 cm)
@@ -118,6 +118,7 @@ public:
     // Interpolated poses (game units, LH). Car poses are the drawn car origin.
     // t: interpolation factor override (0 = previous tick, 1 = latest tick); < 0 uses alpha().
     GamePose playerCarPose(float t = -1.0f) const;
+    GamePose rawPlayerCarPose(float t = -1.0f) const;   // interpolated, without the ground correction
     GamePose opponentCarPose(float t = -1.0f) const;
     GamePose cockpitEyePose(float t = -1.0f) const;  // driver's eye (seat origin for VR)
     GamePose cameraPose() const;                     // menu / preview / race camera for flat mode
@@ -126,7 +127,6 @@ public:
     const HudState &hud() const { return m_hud; }
     const ScrCarTelemetry &telemetry() const { return m_telemetry; }
     uint32_t tickCount() const { return m_ticks; }
-    float visualLift() const { return m_cur.lift; }   // current ground correction (game units)
 
 private:
     struct Snapshot

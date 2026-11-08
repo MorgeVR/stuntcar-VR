@@ -13,6 +13,7 @@
 #include "car.h"
 #include "car_behaviour.h"
 #include "opponent_behaviour.h"
+#include "road_surface.h"
 
 #include <cmath>
 #include <ctime>
@@ -422,15 +423,7 @@ void Game::tick()
         UpdateDamage();
         UpdateLapData();
         GetCarTelemetry(&m_telemetry);
-        // visual ground correction (see game.h)
-        m_lift = 0.0f;
-        const ScrCarTelemetry &t = m_telemetry;
-        if (t.road_under_wheels && !t.on_chains)
-        {
-            float c = std::min(t.wheel_clearance[0], std::min(t.wheel_clearance[1], t.wheel_clearance[2]));
-            float lift = (kCarRestClearance - kMaxVisualSink) - c;
-            if (lift > 0.0f && lift < 160.0f) m_lift = lift;   // larger = road of another piece (falling off)
-        }
+        m_lift = 0.0f;   // (ground correction is now done per frame, see playerCarPose)
     }
     else
     {
@@ -483,7 +476,7 @@ void Game::calcMenuViewpoint() {}
 // Interpolate two fixed-point snapshots for the player car
 static void InterpFixed(int32_t a, int32_t b, float t, float &outv) { outv = (float)a + (float)(b - a) * t; }
 
-GamePose Game::playerCarPose(float t) const
+GamePose Game::rawPlayerCarPose(float t) const
 {
     const Snapshot &a = m_prev.valid ? m_prev : m_cur;
     const Snapshot &b = m_cur;
@@ -494,9 +487,19 @@ GamePose Game::playerCarPose(float t) const
     GamePose pb = poseFromFixed(b.px, b.py, b.pz, AngleToRadians(b.pxa), AngleToRadians(b.pya), AngleToRadians(b.pza), kCarDrawOffset + b.lift);
 
     // Snap on discontinuities (reset onto the chains, turning around)
-    if (length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f)
-        return pb;
-    return {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    GamePose p = pb;
+    if (!(length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f))
+        p = {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    return p;
+}
+
+GamePose Game::playerCarPose(float t) const
+{
+    // Keep the drawn car on the road: between physics ticks the straight-line interpolation
+    // cuts through crests and ramps, and hard landings sink the physics car into the road.
+    GamePose p = rawPlayerCarPose(t);
+    p.position.y += CarGroundLift(p.position, p.orientation, kMaxVisualSink);
+    return p;
 }
 
 GamePose Game::opponentCarPose(float t) const
@@ -509,7 +512,9 @@ GamePose Game::opponentCarPose(float t) const
     GamePose pb = poseFromFixed(b.ox, b.oy, b.oz, b.oxa, b.oya, b.oza, VCAR_HEIGHT / 4.0f);
     if (length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f)
         return pb;
-    return {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    GamePose p = {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    p.position.y += CarGroundLift(p.position, p.orientation, kMaxVisualSink);
+    return p;
 }
 
 GamePose Game::cockpitEyePose(float t) const
@@ -558,15 +563,18 @@ GamePose Game::cameraPose() const
         return cam;
     }
 
-    // Racing / game over: interpolated original viewpoint
+    // Racing / game over: interpolated original viewpoint, raised with the drawn car
     const Snapshot &a = m_prev.valid ? m_prev : m_cur;
     const Snapshot &b = m_cur;
     float t = std::min(1.0f, std::max(0.0f, alpha()));
-    GamePose pa = poseFromFixed(a.vx, a.vy, a.vz, AngleToRadians(a.vxa), AngleToRadians(a.vya), AngleToRadians(a.vza), a.lift);
-    GamePose pb = poseFromFixed(b.vx, b.vy, b.vz, AngleToRadians(b.vxa), AngleToRadians(b.vya), AngleToRadians(b.vza), b.lift);
-    if (length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f)
-        return pb;
-    return {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    GamePose pa = poseFromFixed(a.vx, a.vy, a.vz, AngleToRadians(a.vxa), AngleToRadians(a.vya), AngleToRadians(a.vza), 0.0f);
+    GamePose pb = poseFromFixed(b.vx, b.vy, b.vz, AngleToRadians(b.vxa), AngleToRadians(b.vya), AngleToRadians(b.vza), 0.0f);
+    cam = pb;
+    if (!(length(pb.position - pa.position) > 2048.0f || angleBetween(pa.orientation, pb.orientation) > kPi * 0.5f))
+        cam = {lerp(pa.position, pb.position, t), slerp(pa.orientation, pb.orientation, t)};
+    GamePose car = rawPlayerCarPose(-1.0f);
+    cam.position.y += CarGroundLift(car.position, car.orientation, kMaxVisualSink);
+    return cam;
 }
 
 void Game::updateHud()

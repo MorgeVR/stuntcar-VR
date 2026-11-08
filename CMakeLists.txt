@@ -45,6 +45,7 @@ add_library(scr_core STATIC
     src/game/opponent_behaviour.cpp
     src/game/track.cpp
     src/game/game.cpp
+    src/game/road_surface.cpp
     src/compat/scr_sound.cpp
 )
 target_include_directories(scr_core PUBLIC src/compat src/game src/math)
