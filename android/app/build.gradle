@@ -51,6 +51,11 @@ android {
         }
     }
 
+    lint {
+        // Google Play's target-SDK rule doesn't apply: Quest (Horizon OS) apps target 32
+        disable 'ExpiredTargetSdkVersion'
+    }
+
     packaging {
         jniLibs { useLegacyPackaging true }
     }
