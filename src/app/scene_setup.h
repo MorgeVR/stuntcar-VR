@@ -35,6 +35,27 @@ vm::mat4 DioramaTransform(const vm::Pose &anchor, float table_width_m = 1.1f);
 vm::Pose DefaultDioramaAnchor();
 vm::mat4 MenuEnvironmentTransform(const Space &space, float floor_below_head_m = 1.25f);
 
+// Third-person chase camera behind and above the car. It follows the car's heading with
+// a little lag but ignores pitch and roll (level horizon, comfortable in VR), and snaps
+// instead of swinging when the car turns around or is reset onto the track.
+struct ChaseCamera
+{
+    float distance_m = 7.5f;    // behind the car
+    float height_m = 2.8f;      // above the car
+
+    void reset() { m_valid = false; }
+    // Call once per frame while racing. Returns the camera pose in world metres.
+    // look_at_car: flat screen pitches down toward the car; VR stays level (you look with your head).
+    vm::Pose update(const Game &game, const Space &space, float dt, bool look_at_car);
+    vm::Pose pose() const { return m_pose; }
+
+private:
+    bool m_valid = false;
+    vm::vec3 m_pos;      // game units
+    float m_yaw = 0.0f;  // radians, game space
+    vm::Pose m_pose;
+};
+
 // Vignette strength from car telemetry (0..1)
 float ComfortVignette(const Game &game, const ComfortSettings &comfort, float dt);
 

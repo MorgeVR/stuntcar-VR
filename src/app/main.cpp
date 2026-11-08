@@ -84,6 +84,7 @@ struct App
     InputSystem input;
     FfbModel ffb;
     VrWheel vr_wheel;
+    ChaseCamera chase;
     XrApp xr;
     bool vr = false;
 
@@ -153,6 +154,8 @@ bool App::init(int argc, char **argv)
     flat_cockpit = settings.flat_cockpit;
     space.metres_per_unit = settings.metres_per_unit;
     vr_wheel.lock_deg = settings.vr_wheel_lock_deg;
+    chase.distance_m = settings.chase_distance_m;
+    chase.height_m = settings.chase_height_m;
 
     // OpenGL ES on Android (Quest); desktop GL 3.3 core elsewhere (override: SCR_GLES=1)
 #if defined(__ANDROID__)
@@ -340,6 +343,8 @@ void App::renderFlat(int w, int h)
     const Mode mode = game.mode();
     const bool racing = mode == Mode::Racing || mode == Mode::GameOver;
     View v = FlatView(game, space, w, h, flat_cockpit, flat_cockpit ? 75.0f : 60.0f);
+    if (racing && game.outsideView())
+        v.view = chase.pose().inverse().matrix();
     SceneParams sp = BuildScene(game, space, false, flat_cockpit, Pose());
     if (racing && flat_cockpit) { DrawDashboard(dash, game); sp.dashboard = &dash; }
     renderer.drawScene(v, sp);
@@ -369,7 +374,8 @@ void App::renderVr(bool should_render, const XrInputs &in)
     if (!should_render) { xr.endFrame(); return; }
     const Mode mode = game.mode();
     const bool racing = mode == Mode::Racing || mode == Mode::GameOver;
-    const Pose seat = racing ? SeatWorldPose(game, space, settings.comfort) : Pose();
+    const bool third_person = racing && game.outsideView();
+    const Pose seat = !racing ? Pose() : third_person ? chase.pose() : SeatWorldPose(game, space, settings.comfort);
     const Pose anchor = DefaultDioramaAnchor();
 
     if (racing) DrawDashboard(dash, game);
@@ -404,6 +410,9 @@ void App::renderVr(bool should_render, const XrInputs &in)
                 renderer.drawScene(v, env);
                 renderer.drawPanel(v, menu_panel, Pose{vec3(0.0f, 0.15f, -1.9f), quat()}, 1.1f, 0.69f, srgb);
             }
+            // third person: speed / boost readout floats low in front of you
+            if (third_person)
+                renderer.drawPanel(v, dash, seat * Pose{vec3(0.0f, -0.75f, -1.2f), quat::axisAngle({1, 0, 0}, -0.6f)}, 0.6f, 0.19f, srgb);
             // race messages float ahead of the car
             renderer.drawPanel(v, overlay, seat * Pose{vec3(0.0f, 0.35f, -2.5f), quat()}, 2.0f, 0.5f, srgb);
 
@@ -492,6 +501,10 @@ void App::run()
         FfbOutput fo = ffb.update(game, f.analog.steer, (float)dt, settings.ffb);
         input.applyForceFeedback(fo, f.analog.steer, (float)dt);
         vignette = ComfortVignette(game, settings.comfort, (float)dt);
+        if ((game.mode() == Mode::Racing || game.mode() == Mode::GameOver) && game.outsideView())
+            chase.update(game, space, (float)dt, !vr);
+        else
+            chase.reset();
 
         int w = 0, h = 0;
         SDL_GetWindowSizeInPixels(window, &w, &h);

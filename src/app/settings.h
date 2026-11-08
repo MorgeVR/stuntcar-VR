@@ -18,6 +18,8 @@ struct Settings
     bool ffb_invert = false;
     InputConfig input;
     float vr_wheel_lock_deg = 180.0f;   // virtual wheel rotation (VR controllers) for full lock
+    float chase_distance_m = 7.5f;     // third-person camera
+    float chase_height_m = 2.8f;
     bool flat_cockpit = false;          // flat screen: show the 3D cockpit instead of the classic view
     bool mirror = false;                // desktop VR: render a spectator view in the window
     int window_w = 1280, window_h = 720;

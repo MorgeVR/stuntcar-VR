@@ -55,6 +55,8 @@ bool Settings::load(const std::string &path)
     F("wheel_deadzone", input.steer_deadzone);
     F("gamepad_deadzone", input.stick_deadzone);
     F("vr_wheel_lock_deg", vr_wheel_lock_deg);
+    F("chase_distance_m", chase_distance_m);
+    F("chase_height_m", chase_height_m);
     B("flat_cockpit", flat_cockpit);
     B("mirror", mirror);
     I("window_width", window_w);
@@ -87,6 +89,7 @@ bool Settings::save(const std::string &path) const
     fprintf(f, "# Steering wheel axes (-1 = learn: press throttle, then brake, after starting)\nwheel_steer_axis = %d\nwheel_throttle_axis = %d\nwheel_brake_axis = %d\n", input.steer_axis, input.throttle_axis, input.brake_axis);
     fprintf(f, "# Physical rotation of your wheel, and how much of it gives full steering lock\nwheel_range_deg = %.0f\nwheel_steer_lock_deg = %.0f\nwheel_deadzone = %.3f\ngamepad_deadzone = %.3f\n\n", input.wheel_range_deg, input.steer_lock_deg, input.steer_deadzone, input.stick_deadzone);
     fprintf(f, "# VR controllers: grip both hands to hold the virtual wheel; rotation for full lock\nvr_wheel_lock_deg = %.0f\n\n", vr_wheel_lock_deg);
+    fprintf(f, "# Third-person camera (X in VR, V on the keyboard): metres behind and above the car\nchase_distance_m = %.1f\nchase_height_m = %.1f\n\n", chase_distance_m, chase_height_m);
     fprintf(f, "# Flat screen: 1 = 3D cockpit view, 0 = classic view (toggle with C)\nflat_cockpit = %d\n", flat_cockpit ? 1 : 0);
     fprintf(f, "# Desktop VR: show a spectator view in the window\nmirror = %d\nwindow_width = %d\nwindow_height = %d\n", mirror ? 1 : 0, window_w, window_h);
     fclose(f);

@@ -94,6 +94,54 @@ SceneParams BuildScene(const Game &game, const Space &space, bool vr, bool cockp
     return p;
 }
 
+Pose ChaseCamera::update(const Game &game, const Space &space, float dt, bool look_at_car)
+{
+    GamePose car = game.playerCarPose();
+    const float units = 1.0f / space.metres_per_unit;
+    const float dist = distance_m * units, height = height_m * units;
+
+    // heading of the car in game space (+z forward); keep the last one if pointing straight up/down
+    vec3 f = car.orientation.rotate(vec3(0, 0, 1));
+    float target_yaw = m_yaw;
+    if (f.x * f.x + f.z * f.z > 0.05f) target_yaw = std::atan2(f.x, f.z);
+
+    float dyaw = target_yaw - m_yaw;
+    while (dyaw > kPi) dyaw -= 2 * kPi;
+    while (dyaw < -kPi) dyaw += 2 * kPi;
+
+    auto desired = [&](float yaw) { return car.position + vec3(-std::sin(yaw) * dist, height, -std::cos(yaw) * dist); };
+
+    if (!m_valid || std::fabs(dyaw) > kPi * 0.55f || length(desired(target_yaw) - m_pos) > dist * 4.0f)
+    {
+        // first frame, turned around, or reset onto the chains: jump straight there
+        m_yaw = target_yaw;
+        m_pos = desired(m_yaw);
+        m_valid = true;
+    }
+    else
+    {
+        m_yaw += dyaw * std::min(1.0f, dt * 3.5f);
+        vec3 want = desired(m_yaw);
+        m_pos = m_pos + (want - m_pos) * std::min(1.0f, dt * 6.0f);
+    }
+
+    GamePose cam;
+    cam.position = m_pos;
+    if (look_at_car)
+    {
+        vec3 d = normalize((car.position + vec3(0, 40, 0)) - m_pos);
+        float yaw = std::atan2(d.x, d.z);
+        float pitch = -std::asin(std::max(-1.0f, std::min(1.0f, d.y)));
+        cam.orientation = normalize(quat::axisAngle({0, 1, 0}, yaw) * quat::axisAngle({1, 0, 0}, pitch));
+    }
+    else
+    {
+        cam.orientation = quat::axisAngle({0, 1, 0}, m_yaw);
+    }
+    m_pose = space.poseToWorld(cam.position, cam.orientation);
+    return m_pose;
+}
+
 float ComfortVignette(const Game &game, const ComfortSettings &comfort, float dt)
 {
     static float level = 0.0f;

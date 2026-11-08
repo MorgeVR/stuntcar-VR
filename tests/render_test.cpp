@@ -178,6 +178,29 @@ int main(int argc, char **argv)
     Run(game, 0.3, kKeyAccel);
     Begin(r); r.drawScene(FlatView(game, space, W, H, false), BuildScene(game, space, false, false, Pose()));
     SavePPM(pre + "05_race_outside", W, H);
+    // ---- third-person chase camera (flat: looks at the car; VR: level) ----------------------
+    {
+        ChaseCamera chase;
+        for (int i = 0; i < 180; i++) { game.update(1.0 / 90.0); chase.update(game, space, 1.0f / 90.0f, true); }
+        Begin(r);
+        View v = FlatView(game, space, W, H, false);
+        v.view = chase.pose().inverse().matrix();
+        r.drawScene(v, BuildScene(game, space, false, false, Pose()));
+        SavePPM(pre + "05b_chase_flat", W, H);
+
+        ChaseCamera vrc;
+        for (int i = 0; i < 90; i++) { game.update(1.0 / 90.0); vrc.update(game, space, 1.0f / 90.0f, false); }
+        Pose seat = vrc.pose();
+        Pose head{vec3(0, 0, 0), quat::axisAngle({1, 0, 0}, -0.3f)};   // looking down a little
+        Begin(r);
+        View vv;
+        vv.view = (seat * head).inverse().matrix();
+        vv.proj = mat4::perspectiveFov(-0.9f, 0.9f, 0.75f, -0.85f, 0.03f, 6000.0f);
+        DrawDashboard(dash, game);
+        r.drawScene(vv, BuildScene(game, space, true, true, Pose()));
+        r.drawPanel(vv, dash, seat * Pose{vec3(0.0f, -0.75f, -1.2f), quat::axisAngle({1, 0, 0}, -0.6f)}, 0.6f, 0.19f, false);
+        SavePPM(pre + "05c_chase_vr", W, H);
+    }
     game.setOutsideView(false);
 
     // ---- VR style stereo pair from the seat (head looking slightly left and down) ----------

@@ -70,7 +70,7 @@ each eye in the headset.
 | Brake / reverse | ↓ or ' (original #) | left trigger | left trigger | brake pedal |
 | Boost | Space (with ↑) | A / RB | A | any wheel button |
 | Turn around | R | B | B | |
-| Outside view | V | Y | X | |
+| Third-person chase camera | V | Y | X | |
 | Pause | P (O to resume) | Start | Menu (B while paused = track menu) | |
 | Recentre seat | Home | L3 | Y | |
 | Track menu | M | Back | Menu (in menus) | |
