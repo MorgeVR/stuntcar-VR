@@ -180,6 +180,10 @@ if(SCR_BUILD_TESTS AND NOT ANDROID)
     target_link_libraries(sim_test PRIVATE scr_core)
     add_test(NAME sim_test COMMAND sim_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+    add_executable(pedal_test tests/pedal_test.cpp)
+    target_include_directories(pedal_test PRIVATE src/input)
+    add_test(NAME pedal_test COMMAND pedal_test)
+
     add_executable(ffb_test tests/ffb_test.cpp src/compat/asset_stdio.cpp)
     target_link_libraries(ffb_test PRIVATE scr_ffb)
     add_test(NAME ffb_test COMMAND ffb_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

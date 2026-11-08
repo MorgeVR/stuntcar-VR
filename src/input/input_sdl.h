@@ -5,6 +5,7 @@
 #include <string>
 #include "ffb.h"
 #include "car_behaviour.h"
+#include "pedal.h"
 
 namespace scr {
 
@@ -52,7 +53,7 @@ private:
     void openJoystick(SDL_JoystickID id);
     void closeJoystick(SDL_JoystickID id);
     void setupHaptics();
-    float pedal(int axis) const;
+    float pedal(int axis);
 
     InputConfig m_cfg;
     SDL_Gamepad *m_pad = nullptr;
@@ -62,8 +63,7 @@ private:
     uint32_t m_haptic_features = 0;
     float m_last_const = 0, m_last_spring = -1, m_last_damper = -1, m_last_sine = -1;
     double m_ffb_timer = 0.0;
-    int m_axis_rest[16];
-    bool m_rest_valid = false;
+    PedalAxis m_pedals[16];
     int m_learn_stage = 0;    // 0 = throttle, 1 = brake, 2 = done
     std::string m_wheel_name, m_pad_name, m_learn_msg;
 };

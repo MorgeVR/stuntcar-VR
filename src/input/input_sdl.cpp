@@ -54,12 +54,14 @@ void InputSystem::openJoystick(SDL_JoystickID id)
         if (m_wheel)
         {
             m_wheel_name = SDL_GetJoystickName(m_wheel) ? SDL_GetJoystickName(m_wheel) : "wheel";
-            m_rest_valid = false;
+            for (PedalAxis &pa : m_pedals) pa = PedalAxis();
             fprintf(stderr, "[StuntCarVR] steering wheel: %s (%d axes)\n", m_wheel_name.c_str(), SDL_GetNumJoystickAxes(m_wheel));
             setupHaptics();
         }
         return;
     }
+    // SDL also announces some wheels (e.g. the G27) as gamepads: never open a wheel twice
+    if (LooksLikeWheel(id) || (m_wheel && SDL_GetJoystickID(m_wheel) == id)) return;
     if (!m_pad && SDL_IsGamepad(id))
     {
         m_pad = SDL_OpenGamepad(id);
@@ -191,14 +193,15 @@ void InputSystem::handleEvent(const SDL_Event &e, bool racing, InputFrame &f)
     }
 }
 
-float InputSystem::pedal(int axis) const
+float InputSystem::pedal(int axis)
 {
     if (!m_wheel || axis < 0 || axis >= SDL_GetNumJoystickAxes(m_wheel) || axis >= 16) return 0.0f;
-    // Pedals rest at one end of the axis (which end varies by wheel): measure from rest.
-    int v = SDL_GetJoystickAxis(m_wheel, axis);
-    int rest = m_rest_valid ? m_axis_rest[axis] : -32768;
-    float range = (rest > 0) ? (float)(rest + 32768) : (float)(32767 - rest);
-    return std::max(0.0f, std::min(1.0f, std::fabs((float)(v - rest)) / std::max(1.0f, range)));
+    PedalAxis &pa = m_pedals[axis];
+    const bool was_known = pa.known();
+    float v = pa.update(SDL_GetJoystickAxis(m_wheel, axis));
+    if (!was_known && pa.known())
+        fprintf(stderr, "[StuntCarVR] wheel axis %d rests at %s end\n", axis, pa.rest_sign > 0 ? "the + " : "the - ");
+    return v;
 }
 
 void InputSystem::poll(bool racing, InputFrame &f)
@@ -249,18 +252,13 @@ void InputSystem::poll(bool racing, InputFrame &f)
     if (m_wheel)
     {
         int na = std::min(16, SDL_GetNumJoystickAxes(m_wheel));
-        if (!m_rest_valid)
-        {
-            for (int i = 0; i < na; i++) m_axis_rest[i] = SDL_GetJoystickAxis(m_wheel, i);
-            m_rest_valid = true;
-        }
         // learn pedals: the first non-steering axis pushed past half travel
         if (m_learn_stage < 2)
         {
             for (int i = 0; i < na; i++)
             {
                 if (i == m_cfg.steer_axis || i == m_cfg.throttle_axis) continue;
-                if (pedal(i) > 0.5f)
+                if (pedal(i) > 0.5f && m_pedals[i].known())
                 {
                     if (m_learn_stage == 0) { m_cfg.throttle_axis = i; m_learn_msg = "throttle = axis " + std::to_string(i); }
                     else { m_cfg.brake_axis = i; m_learn_msg = "brake = axis " + std::to_string(i); }
