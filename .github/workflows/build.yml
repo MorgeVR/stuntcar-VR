@@ -5,10 +5,41 @@ permissions:
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
+env:
+  # SHA-256 of the release signing certificate (android/signing/README.md)
+  RELEASE_CERT_SHA256: 9cbdac0411056d703cfe8d498a73e66246a797c4cd35e32a3082937f8bfb1984
+
 jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-24.04
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+      code: ${{ steps.v.outputs.code }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          base=$(head -1 VERSION | tr -d '[:space:]')
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            name="${GITHUB_REF_NAME#v}"
+            [ "$name" = "$base" ] || { echo "::error::Tag $GITHUB_REF_NAME doesn't match VERSION ($base)"; exit 1; }
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            name="${base}-dev.${GITHUB_RUN_NUMBER}"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
+          # Android versionCode: always increasing (the workflow run number)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Version $name (code $GITHUB_RUN_NUMBER)"
+
   tests:
     name: Tests (Linux)
     runs-on: ubuntu-24.04
@@ -23,6 +54,7 @@ jobs:
 
   windows:
     name: Windows (PCVR / flat)
+    needs: version
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +69,7 @@ jobs:
         run: >
           cmake -S . -B build-win -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-llvm.cmake -DSCR_BUILD_TESTS=OFF
+          -DSCR_VERSION_LABEL=${{ needs.version.outputs.name }}
       - name: Build
         run: cmake --build build-win -j4 --target StuntCarVR
       - name: Package
@@ -45,6 +78,7 @@ jobs:
           x86_64-w64-mingw32-strip -o out/StuntCarVR-Windows/StuntCarVR.exe build-win/StuntCarVR.exe
           cp -r assets out/StuntCarVR-Windows/assets
           cp packaging/windows/* out/StuntCarVR-Windows/
+          echo "${{ needs.version.outputs.name }}" > out/StuntCarVR-Windows/VERSION.txt
       - uses: actions/upload-artifact@v4
         with:
           name: StuntCarVR-Windows
@@ -52,7 +86,11 @@ jobs:
 
   quest:
     name: Meta Quest (APK)
+    needs: version
     runs-on: ubuntu-24.04
+    env:
+      SCR_VERSION_NAME: ${{ needs.version.outputs.name }}
+      SCR_VERSION_CODE: ${{ needs.version.outputs.code }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -70,6 +108,23 @@ jobs:
           # SDL's sample android-project (fetched into android/third_party) ships its own
           # wrapper jar, which the validator doesn't know; we don't use any wrapper.
           validate-wrappers: false
+      - name: Release signing key
+        env:
+          PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$PW" ]; then
+            if [ "${{ needs.version.outputs.release }}" = "true" ]; then
+              echo "::error::Secret ANDROID_KEYSTORE_PASSWORD is not set - releases must be signed with the release key"
+              exit 1
+            fi
+            echo "::warning::Secret ANDROID_KEYSTORE_PASSWORD not set: this APK is signed with a debug key (updates won't install over it)"
+            exit 0
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in android/signing/release.jks.enc \
+            -out "$RUNNER_TEMP/release.jks" -pass env:PW
+          echo "SCR_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "SCR_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
+          echo "::add-mask::$PW"
       - name: Build APK
         working-directory: android
         run: gradle --no-daemon assembleRelease
@@ -88,17 +143,23 @@ jobs:
           done
           echo "assets in APK: $(unzip -l "$apk" | grep -c ' assets/')"
           "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -E "^package|sdkVersion|targetSdkVersion|native-code|uses-feature: name='android.hardware.vr"
+          cert=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" | grep -m1 "SHA-256 digest" | awk '{print $NF}')
+          echo "signing certificate SHA-256: $cert"
+          if [ "$cert" = "$RELEASE_CERT_SHA256" ]; then echo "signed with the release key"
+          elif [ "${{ needs.version.outputs.release }}" = "true" ]; then echo "::error::release APK is not signed with the release key"; exit 1
+          else echo "::warning::APK signed with a debug key"; fi
       - uses: actions/upload-artifact@v4
         with:
           name: StuntCarVR-Quest
           path: out/StuntCarVR-Quest
 
   release:
-    name: Publish "latest" release
-    needs: [tests, windows, quest]
-    if: github.ref == 'refs/heads/main'
+    name: Publish release
+    needs: [version, tests, windows, quest]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dl
@@ -112,8 +173,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          VERSION_NAME: ${{ needs.version.outputs.name }}
         run: |
+          files="StuntCarVR-Windows.zip StuntCarVR.apk StuntCarVR-Quest.zip"
+          # the old "latest" development release was renamed to "dev"
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
-          gh release create latest --target "${{ github.sha }}" --title "Latest build" \
-            --notes "Built automatically from ${{ github.sha }}. Windows: unzip StuntCarVR-Windows.zip and read 'READ ME FIRST.txt'. Quest: sideload StuntCarVR.apk (see INSTALL.txt in StuntCarVR-Quest.zip)." \
-            StuntCarVR-Windows.zip StuntCarVR.apk StuntCarVR-Quest.zip
+          if [ "${{ needs.version.outputs.release }}" = "true" ]; then
+            gh release create "$GITHUB_REF_NAME" --verify-tag --latest \
+              --title "Stunt Car Racer VR $GITHUB_REF_NAME" --notes-file packaging/release-notes.md $files
+          else
+            gh release delete dev --yes --cleanup-tag 2>/dev/null || true
+            { echo "**Development build $VERSION_NAME** - built automatically from the latest code (\`${GITHUB_SHA::7}\`). May be less stable than the numbered releases."; echo; cat packaging/release-notes.md; } > notes.md
+            gh release create dev --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "Development build $VERSION_NAME" --notes-file notes.md $files
+          fi

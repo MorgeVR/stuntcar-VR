@@ -4,3 +4,7 @@ out/
 .vs/
 *.user
 CMakeUserPresets.json
+
+# decrypted signing key - never commit
+*.jks
+!*.jks.enc

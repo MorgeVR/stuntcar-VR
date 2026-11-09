@@ -201,6 +201,7 @@ bool App::init(int argc, char **argv)
     if (!gl) { fprintf(stderr, "[StuntCarVR] GL context: %s\n", SDL_GetError()); return false; }
     SDL_GL_MakeCurrent(window, gl);
 
+    fprintf(stderr, "[StuntCarVR] version %s\n", SCR_VERSION);
     const char *missing = nullptr;
     if (!scrgl::Load(SdlGetProc, gles, &missing))
     {

@@ -9,6 +9,12 @@ option(SCR_BUILD_APP      "Build the game executable (needs SDL3)"              
 option(SCR_BUILD_TESTS    "Build the headless tests"                              ON)
 option(SCR_FETCH_DEPS     "Download SDL3 and the OpenXR loader if not found"      ON)
 
+# Version: VERSION file, plus a label for development builds (CI passes e.g. 0.1.0-dev.42)
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/VERSION SCR_VERSION_BASE LIMIT_COUNT 1)
+set(SCR_VERSION_LABEL "${SCR_VERSION_BASE}-local" CACHE STRING "Version shown in the game")
+add_compile_definitions(SCR_VERSION="${SCR_VERSION_LABEL}")
+message(STATUS "Stunt Car Racer VR version ${SCR_VERSION_LABEL}")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

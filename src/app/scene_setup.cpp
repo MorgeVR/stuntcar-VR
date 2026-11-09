@@ -9,6 +9,10 @@
 
 using namespace vm;
 
+#ifndef SCR_VERSION
+#define SCR_VERSION "dev"
+#endif
+
 namespace scr {
 
 static inline uint32_t RGBA(int r, int g, int b, int a = 255)
@@ -194,6 +198,10 @@ void DrawMenuPanel(TextPanel &panel, const Game &game, int highlighted, bool vr,
     panel.clear(kPanelBg);
     panel.fillRect(0, 0, panel.width(), 6, kYellow);
     panel.text(40, 30, "STUNT CAR RACER VR", 5, kYellow);
+    {
+        std::string ver = std::string("V") + SCR_VERSION;
+        panel.text(panel.width() - TextPanel::textWidth(ver, 2) - 16, 18, ver, 2, kGrey);
+    }
 
     if (game.mode() == Mode::TrackMenu)
     {
