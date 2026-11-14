@@ -13,6 +13,12 @@ Install
   * or SideQuest: connect by USB and drag the APK onto the SideQuest window.
   * or adb:  adb install -r StuntCarVR.apk
 
+Updating
+  Install a new APK over the old one the same way; your settings are kept.
+  If you installed a test build from before v0.1.0 (version 0.1.0-dev.5 or older), uninstall
+  it once first (Library > Unknown Sources > ... > Uninstall) - those were signed with a
+  temporary key, so Android refuses to update them.
+
 Play
   In the headset: Library > (filter) Unknown Sources > Stunt Car Racer VR.
 
