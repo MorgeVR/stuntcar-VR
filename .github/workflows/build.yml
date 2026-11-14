@@ -25,20 +25,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           base=$(head -1 VERSION | tr -d '[:space:]')
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # a pushed tag vX.Y.Z publishes that release
             name="${GITHUB_REF_NAME#v}"
             [ "$name" = "$base" ] || { echo "::error::Tag $GITHUB_REF_NAME doesn't match VERSION ($base)"; exit 1; }
-            echo "release=true" >> "$GITHUB_OUTPUT"
+            release=true
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ] && ! gh release view "v$base" > /dev/null 2>&1; then
+            # main with a VERSION that has no release yet: publish it (bump VERSION to release)
+            name="$base"
+            release=true
           else
             name="${base}-dev.${GITHUB_RUN_NUMBER}"
-            echo "release=false" >> "$GITHUB_OUTPUT"
+            release=false
           fi
           # Android versionCode: always increasing (the workflow run number)
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "code=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "Version $name (code $GITHUB_RUN_NUMBER)"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Version $name (code $GITHUB_RUN_NUMBER, release $release)"
 
   tests:
     name: Tests (Linux)
@@ -179,8 +188,9 @@ jobs:
           # the old "latest" development release was renamed to "dev"
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
           if [ "${{ needs.version.outputs.release }}" = "true" ]; then
-            gh release create "$GITHUB_REF_NAME" --verify-tag --latest \
-              --title "Stunt Car Racer VR $GITHUB_REF_NAME" --notes-file packaging/release-notes.md $files
+            tag="v$VERSION_NAME"
+            gh release create "$tag" --target "$GITHUB_SHA" --latest \
+              --title "Stunt Car Racer VR $tag" --notes-file packaging/release-notes.md $files
           else
             gh release delete dev --yes --cleanup-tag 2>/dev/null || true
             { echo "**Development build $VERSION_NAME** - built automatically from the latest code (\`${GITHUB_SHA::7}\`). May be less stable than the numbered releases."; echo; cat packaging/release-notes.md; } > notes.md

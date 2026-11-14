@@ -157,6 +157,18 @@ build/render_test gles out/   # Linux: offscreen renders of every view via headl
   every view (menu, preview, classic, cockpit, outside, VR stereo, VR diorama). The `gl` and `gles`
   modes give pixel-identical images.
 
+## Releases
+
+Every push to `main` is built by GitHub Actions (tests, Windows zip, signed Quest APK).
+
+- To publish a numbered release, change the number in `VERSION` (e.g. `0.2.0`) and push to
+  `main`. That build becomes release `v0.2.0` and the [latest release](../../releases/latest).
+  Pushing a tag `vX.Y.Z` that matches `VERSION` does the same.
+- Other pushes update the **Development build** prerelease (`dev` tag), with versions like
+  `0.2.0-dev.17`.
+- Quest APKs are signed with the release key in `android/signing/`. Builds fail rather than
+  publish a release without it.
+
 ## Code map
 
 | Path | |
