@@ -216,10 +216,12 @@ This game has passed through several hands:
    a fork aiming to fix the physics speed and port to OpenGL. This project started from that
    code. [fluffyfreak/stuntcarracer](https://github.com/fluffyfreak/stuntcarracer) is another
    GitHub copy of the remake.
-4. **2026 - Stunt Car Racer VR** (this project): the remake made portable (no more
-   Windows / DirectX), fixed-rate physics at the Amiga pace, analog steering, a new renderer,
-   OpenXR VR for PC and Meta Quest, force feedback wheels, a 3D cockpit and chase camera, and
-   automated tests and builds.
+4. **2026 - Stunt Car Racer VR** (this project), vibecoded with **Claude** (Anthropic's AI):
+   **MorgeVR** came up with the idea, tested it on a headset and G27 wheel, and reported what
+   needed fixing; Claude wrote the code. The remake was made portable (no more
+   Windows / DirectX), with fixed-rate physics at the Amiga pace, analog steering, a new
+   renderer, OpenXR VR for PC and Meta Quest, force feedback wheels, a 3D cockpit and chase
+   camera, and automated tests and builds.
 
 Related: [ptitSeb/stuntcarremake](https://github.com/ptitSeb/stuntcarremake) ports the same
 remake to Linux and OpenPandora.
