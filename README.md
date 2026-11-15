@@ -201,12 +201,37 @@ mirrored). With that scale the car is about 4 m long, and top speed is about 140
 - The original HUD's damage crack and the speed bar are simplified into the dashboard panel.
 - Super League, two-player link-up, the start-of-race chain/crane graphics and action replay are not ported.
 
-## Licence and credits
+## Credits & history
 
-- Remake code © Daniel Vernon and abainbridge, BSD 2-Clause (`LICENSE.original`). New code
-  in this port is offered under the same terms.
-- The track data, sound samples and physics algorithms come from the original Amiga *Stunt Car
-  Racer*, © Geoff Crammond / MicroStyle / MicroProse and current rights holders (see the original
-  remake's notes). Distributing builds publicly may need permission from them. A personal build is
-  the safe option.
+This game has passed through several hands:
+
+1. **1989 - *Stunt Car Racer*** by **Geoff Crammond**, published by MicroStyle (MicroProse)
+   for the Amiga and Atari ST. The elevated tracks, physics, opponents and sounds all come from
+   that game.
+2. **~2007 - *stuntcarremake*** ([SourceForge](https://sourceforge.net/projects/stuntcarremake/)),
+   a Windows / Direct3D remake by **djvernon**, later also maintained by **fluffyfreak**. It
+   recreates the game from the original Amiga track data, sound samples and car physics
+   algorithms, and is the source of nearly all the game logic here.
+3. **2015 - [abainbridge/stunt-car-racer-opengl](https://github.com/abainbridge/stunt-car-racer-opengl)**,
+   a fork aiming to fix the physics speed and port to OpenGL. This project started from that
+   code. [fluffyfreak/stuntcarracer](https://github.com/fluffyfreak/stuntcarracer) is another
+   GitHub copy of the remake.
+4. **2026 - Stunt Car Racer VR** (this project): the remake made portable (no more
+   Windows / DirectX), fixed-rate physics at the Amiga pace, analog steering, a new renderer,
+   OpenXR VR for PC and Meta Quest, force feedback wheels, a 3D cockpit and chase camera, and
+   automated tests and builds.
+
+Related: [ptitSeb/stuntcarremake](https://github.com/ptitSeb/stuntcarremake) ports the same
+remake to Linux and OpenPandora.
+
+Thank you to Geoff Crammond for the original, and to everyone who kept it alive.
+
+## Licence
+
+- The original *Stunt Car Racer* track data, sound samples and physics algorithms are
+  © Geoff Crammond / MicroStyle / MicroProse and the current rights holders. This is an
+  unofficial fan project, not affiliated with or endorsed by them.
+- abainbridge's fork is under the BSD 2-Clause licence (`LICENSE.original`). The original
+  stuntcarremake project on SourceForge doesn't state a licence.
+- New code in this port is offered under the same BSD 2-Clause terms.
 - 8x8 font: public domain IBM VGA font (Marcel Sondaar), as shipped with SDL3.
